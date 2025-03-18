@@ -5,7 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini AI Voice Chat</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; }
+        body { 
+            font-family: sans-serif; 
+            margin: 20px; 
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+        .main-content {
+            flex: 2;
+        }
+        .chat-history {
+            flex: 1;
+            max-width: 300px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
         #captions { 
             background: #000; 
             color: #fff; 
@@ -19,23 +37,20 @@
             margin-right: 5px; 
             cursor: pointer; 
         }
-        #chat-log { 
-            margin-top: 20px; 
-            max-height: 300px; 
-            overflow-y: auto; 
-        }
         .user-message { background: #e0f7fa; padding: 8px; margin: 5px 0; }
         .ai-message { background: #f0f0f0; padding: 8px; margin: 5px 0; }
     </style>
 </head>
 <body>
-    <h1>Gemini AI Voice Chat</h1>
-    <button id="start">Start</button>
-    <button id="stop">Stop</button>
-    <button id="clear">Clear</button>
-    <div id="captions">Waiting for speech...</div>
-    <div id="error"></div>
-    <div id="chat-log"></div>
+    <div class="main-content">
+        <h1>Gemini AI Voice Chat</h1>
+        <button id="start">Start</button>
+        <button id="stop">Stop</button>
+        <button id="clear">Clear</button>
+        <div id="captions">Waiting for speech...</div>
+        <div id="error"></div>
+    </div>
+    <div class="chat-history" id="chat-log"></div>
 
     <script>
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -50,12 +65,10 @@
         let shouldProcess = true;
         let currentText = "";
         
-        // Setup recognition
         recognition.lang = "en-US";
         recognition.continuous = true;
         recognition.interimResults = true;
         
-        // Request mic permission
         function initMic() {
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .catch(err => {
@@ -64,7 +77,6 @@
                 });
         }
         
-        // Recognition handlers
         recognition.onresult = async (event) => {
             if (!shouldProcess) return;
             
@@ -99,7 +111,6 @@
             }
         };
         
-        // Button handlers
         startBtn.onclick = () => {
             if (!isRecognizing) {
                 initMic();
@@ -114,7 +125,7 @@
             recognition.stop();
             isRecognizing = false;
             shouldProcess = false;
-            speechSynthesis.cancel(); // Stop AI speech
+            speechSynthesis.cancel();
         };
         
         clearBtn.onclick = () => {
@@ -123,7 +134,6 @@
             chatLog.innerHTML = "";
         };
         
-        // AI response handler
         async function getAIResponse(text) {
             try {
                 const response = await fetch("http://127.0.0.1:5000/chat", {
@@ -138,7 +148,6 @@
                 addMessage(text, "user");
                 addMessage(data.response, "ai");
                 
-                // Text-to-speech
                 const speech = new SpeechSynthesisUtterance(data.response);
                 speechSynthesis.speak(speech);
                 
@@ -147,7 +156,6 @@
             }
         }
         
-        // Add message to chat log
         function addMessage(text, sender) {
             const msg = document.createElement("div");
             msg.textContent = text;
