@@ -4,8 +4,9 @@ If its in an index.html, its code for frontend, if in main.py then it needs to b
 ## Compreface
 Probably most complex one to run, compreface is a separate server that runs locally on docker and communicates with other apps through its api,
 run 
+Download the Compreface_1.2.0.zip from https://github.com/exadel-inc/CompreFace/releases and extract it somewhere safe(maybe inside the project folder itself)
 
- `$ cd Comprefaces` - to make sure you are inside the directory
+ `$ cd /path/inside/extracted/directory` - to make sure you are inside the directory
  `$ docker-compose up -d` - creates and runs the docker file
 
 Now,
