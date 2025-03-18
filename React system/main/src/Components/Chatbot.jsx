@@ -118,43 +118,79 @@ const Chatbot = () => {
     };
 
     return (
-        <div style={{ fontFamily: "sans-serif", margin: "20px", textAlign: "center" }}>
-            <h1>Gemini AI Voice Chat</h1>
-            <button onClick={startRecognition}>Start</button>
-            <button onClick={stopRecognition}>Stop</button>
-            <button onClick={clearChat}>Clear</button>
+        <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
+            {/* Video Background */}
+            <video 
+            ref={idleVideoRef}
+            src="/idle.mp4" 
+            autoPlay 
+            loop 
+            muted
+            style={{ 
+                position: "absolute", 
+                top: "50%", 
+                left: "50%", 
+                transform: "translate(-50%, -50%)", 
+                height: "100%", 
+                objectFit: "cover" 
+            }}
+        />
+        <video 
+            ref={talkingVideoRef}
+            src="/talking.mp4" 
+            loop 
+            muted
+            style={{ 
+                position: "absolute", 
+                top: "50%", 
+                left: "50%", 
+                transform: "translate(-50%, -50%)", 
+                height: "100%", 
+                objectFit: "cover", 
+                display: "none" 
+            }}
+        />
+
             
-            {/* Video Section */}
-            <div style={{ marginTop: "20px", position: "relative", width: "400px", height: "300px", margin: "auto" }}>
-                <video 
-                    ref={idleVideoRef}
-                    src="/idle.mp4" 
-                    autoPlay 
-                    loop 
-                    muted
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                />
-                <video 
-                    ref={talkingVideoRef}
-                    src="/talking.mp4" 
-                    loop 
-                    muted
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "none" }}
-                />
+            {/* Buttons */}
+            <div style={{ position: "absolute", top: "20px", left: "20px", zIndex: 10 }}>
+                <button onClick={startRecognition}>Start</button>
+                <button onClick={stopRecognition}>Stop</button>
+                <button onClick={clearChat}>Clear</button>
             </div>
 
-            <div style={{ background: "#000", color: "#fff", padding: "10px", margin: "10px 0", borderRadius: "5px" }}>
-                {captions}
-            </div>
-            <div style={{ color: "red" }}>{error}</div>
-            
             {/* Chat Log */}
-            <div style={{ marginTop: "20px", maxHeight: "300px", overflowY: "auto" }}>
+            <div style={{ 
+                position: "absolute", 
+                bottom: "20px", 
+                left: "20px", 
+                width: "300px", 
+                maxHeight: "200px", 
+                overflowY: "auto", 
+                background: "rgba(0, 0, 0)", 
+                color: "#fff", 
+                padding: "10px", 
+                borderRadius: "5px"
+            }}>
                 {chatLog.map((msg, index) => (
-                    <div key={index} style={{ background: msg.sender === "user" ? "#e0f7fa" : "#f0f0f0", padding: "8px", margin: "5px 0" }}>
+                    <div key={index} style={{ background: msg.sender === "user" ? "#9999ff44" : "#f0f0f044", padding: "5px", margin: "5px 0" }}>
                         {msg.text}
                     </div>
                 ))}
+            </div>
+
+            {/* Captions */}
+            <div style={{ 
+                position: "absolute", 
+                bottom: "10px", 
+                width: "100%", 
+                textAlign: "center", 
+                background: "rgba(0, 0, 0)", 
+                color: "#fff", 
+                padding: "10px", 
+                fontSize: "18px" 
+            }}>
+                {captions}
             </div>
         </div>
     );
