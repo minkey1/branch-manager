@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Voice Chat</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #captions { 
+            background: #000; 
+            color: #fff; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+        }
+        #error { color: red; }
+        button { 
+            padding: 8px 12px; 
+            margin-right: 5px; 
+            cursor: pointer; 
+        }
+        #chat-log { 
+            margin-top: 20px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        .user-message { background: #e0f7fa; padding: 8px; margin: 5px 0; }
+        .ai-message { background: #f0f0f0; padding: 8px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Gemini AI Voice Chat</h1>
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+    <button id="clear">Clear</button>
+    <div id="captions">Waiting for speech...</div>
+    <div id="error"></div>
+    <div id="chat-log"></div>
+
+    <script>
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        const startBtn = document.getElementById("start");
+        const stopBtn = document.getElementById("stop");
+        const clearBtn = document.getElementById("clear");
+        const captions = document.getElementById("captions");
+        const errorMsg = document.getElementById("error");
+        const chatLog = document.getElementById("chat-log");
+        
+        let isRecognizing = false;
+        let shouldProcess = true;
+        let currentText = "";
+        
+        // Setup recognition
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        
+        // Request mic permission
+        function initMic() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .catch(err => {
+                    errorMsg.textContent = "Microphone access denied";
+                    console.error(err);
+                });
+        }
+        
+        // Recognition handlers
+        recognition.onresult = async (event) => {
+            if (!shouldProcess) return;
+            
+            let transcript = "";
+            let finalTranscript = "";
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript = event.results[i][0].transcript;
+                
+                if (event.results[i].isFinal) {
+                    finalTranscript = transcript;
+                    captions.textContent = finalTranscript;
+                    
+                    shouldProcess = false;
+                    await getAIResponse(finalTranscript);
+                    shouldProcess = true;
+                } else {
+                    captions.textContent = currentText + transcript;
+                }
+            }
+        };
+        
+        recognition.onerror = (event) => {
+            errorMsg.textContent = "Error: " + event.error;
+        };
+        
+        recognition.onend = () => {
+            isRecognizing = false;
+            if (shouldProcess) {
+                recognition.start();
+                isRecognizing = true;
+            }
+        };
+        
+        // Button handlers
+        startBtn.onclick = () => {
+            if (!isRecognizing) {
+                initMic();
+                recognition.start();
+                isRecognizing = true;
+                shouldProcess = true;
+                errorMsg.textContent = "";
+            }
+        };
+        
+        stopBtn.onclick = () => {
+            recognition.stop();
+            isRecognizing = false;
+            shouldProcess = false;
+            speechSynthesis.cancel(); // Stop AI speech
+        };
+        
+        clearBtn.onclick = () => {
+            currentText = "";
+            captions.textContent = "Waiting for speech...";
+            chatLog.innerHTML = "";
+        };
+        
+        // AI response handler
+        async function getAIResponse(text) {
+            try {
+                const response = await fetch("http://127.0.0.1:5000/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: text })
+                });
+                
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                
+                addMessage(text, "user");
+                addMessage(data.response, "ai");
+                
+                // Text-to-speech
+                const speech = new SpeechSynthesisUtterance(data.response);
+                speechSynthesis.speak(speech);
+                
+            } catch (error) {
+                errorMsg.textContent = "API Error: " + error.message;
+            }
+        }
+        
+        // Add message to chat log
+        function addMessage(text, sender) {
+            const msg = document.createElement("div");
+            msg.textContent = text;
+            msg.className = sender + "-message";
+            chatLog.appendChild(msg);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+    </script>
+</body>
+</html>

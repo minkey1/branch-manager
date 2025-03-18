@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+</head>
+<body>
+    <h2>Upload an Image</h2>
+    <input type="file" accept="image/*" id="imageInput">
+    <button onclick="uploadImage()">Upload</button>
+
+    <h2>Capture from Camera</h2>
+    <video id="video" width="320" height="240" autoplay></video>
+    <button onclick="captureImage()">Capture</button>
+    <img id="capturedImage" style="display:none; width: 320px; height: 240px; border: 1px solid black;"/>
+
+    <script>
+        const video = document.getElementById('video');
+        const capturedImage = document.getElementById('capturedImage');
+        let stream;
+
+        async function uploadImage() {
+            const input = document.getElementById('imageInput');
+            if (!input.files.length) {
+                alert("Please select an image");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("image", input.files[0]);
+
+            const response = await fetch('http://127.0.0.1:5000/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            alert(result.message);
+        }
+
+        function captureImage() {
+            // Create a hidden canvas to capture the image
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Pause the video feed
+            video.pause();
+
+            // Set captured image source and show it
+            capturedImage.src = canvas.toDataURL("image/jpeg");
+            capturedImage.style.display = "block";
+
+            // Convert canvas to Blob and upload
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append("image", blob, "captured_image.jpg");
+
+                const response = await fetch('http://127.0.0.1:5000/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                alert(result.message);
+            }, 'image/jpeg');
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(s => {
+                stream = s;
+                video.srcObject = stream;
+            })
+            .catch(err => console.error("Error accessing camera:", err));
+    </script>
+</body>
+</html>
