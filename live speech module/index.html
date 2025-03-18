@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Speech-to-Text (Closed Captions)</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        h1 { color: #333; }
+        #captions {
+            font-size: 20px;
+            font-weight: bold;
+            background: black;
+            color: white;
+            padding: 10px;
+            margin-top: 20px;
+            display: inline-block;
+            border-radius: 8px;
+            min-width: 300px;
+            max-width: 80%;
+            white-space: pre-wrap;
+            text-align: left;
+        }
+        #error {
+            color: red;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        button {
+            font-size: 18px;
+            padding: 10px 15px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+        #start { background: green; }
+        #stop { background: red; }
+        #clear { background: blue; }
+    </style>
+</head>
+<body>
+
+    <h1>Live Speech-to-Text (Closed Captions)</h1>
+    <button id="start">Start Captions</button>
+    <button id="stop">Stop Captions</button>
+    <button id="clear">Clear Text</button>
+    <p id="captions">Waiting for speech...</p>
+    <p id="error"></p>
+
+    <script>
+        // Check if browser supports Speech Recognition API
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!window.SpeechRecognition) {
+            alert("Your browser does not support Speech Recognition. Try using Chrome or Edge.");
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = "en-US";  
+            recognition.continuous = true;  
+            recognition.interimResults = true;  
+
+            const startButton = document.getElementById("start");
+            const stopButton = document.getElementById("stop");
+            const clearButton = document.getElementById("clear");
+            const captions = document.getElementById("captions");
+            const errorMsg = document.getElementById("error");
+
+            let isRecognizing = false; 
+            let storedText = ""; 
+            let tempText = ""; // Temporary text for live captions
+
+            recognition.onresult = (event) => {
+                let transcript = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    let result = event.results[i];
+                    if (result.isFinal) {
+                        storedText += result[0].transcript + ". "; // Save only completed sentences
+                        tempText = ""; // Clear temp text after finalization
+                    } else {
+                        tempText = result[0].transcript; // Show partial text live
+                    }
+                }
+                captions.textContent = storedText + tempText; // Display stored + live speech
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech error:", event.error);
+                captions.textContent = "Recognition stopped due to error.";
+                
+                if (event.error === "network") {
+                    errorMsg.textContent = "⚠️ Internet connection lost! Speech recognition requires an active connection.";
+                } else {
+                    errorMsg.textContent = "⚠️ Error: " + event.error;
+                }
+            };
+
+            recognition.onend = () => {
+                console.log("Speech recognition stopped.");
+                isRecognizing = false;
+            };
+
+            startButton.onclick = () => {
+                if (!navigator.onLine) {
+                    errorMsg.textContent = "⚠️ No internet connection. Please connect and try again.";
+                    return;
+                }
+                recognition.start();
+                errorMsg.textContent = "";
+                isRecognizing = true;
+            };
+
+            stopButton.onclick = () => {
+                recognition.stop();
+                isRecognizing = false;
+            };
+
+            clearButton.onclick = () => {
+                storedText = "";
+                tempText = "";
+                captions.textContent = "Waiting for speech...";
+            };
+
+            window.addEventListener("offline", () => {
+                errorMsg.textContent = "⚠️ Internet disconnected. Speech recognition stopped.";
+                if (isRecognizing) recognition.stop();
+            });
+
+            window.addEventListener("online", () => {
+                errorMsg.textContent = "✅ Internet restored! You can start captions again.";
+            });
+        }
+    </script>
+
+</body>
+</html>
