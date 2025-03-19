@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-
+import "./Chatbot.css"
 const Chatbot = () => {
     const [captions, setCaptions] = useState("Waiting for speech...");
     const [error, setError] = useState("");
     const [chatLog, setChatLog] = useState([]);
     const recognitionRef = useRef(null);
+    const chatLogRef = useRef(null);
     const isRecognizing = useRef(false);
     const shouldProcess = useRef(true);
     const idleVideoRef = useRef(null);
@@ -75,6 +76,10 @@ const Chatbot = () => {
         setChatLog([]);
     };
 
+    const sanitizeResponse = (text) => {
+        return text.replace(/\*+/g, '').replace(/[\[\](){}<>]/g, '');
+    };
+
     const getAIResponse = async (text) => {
         try {
             const response = await fetch("http://127.0.0.1:5000/chat", {
@@ -86,10 +91,11 @@ const Chatbot = () => {
             const data = await response.json();
             if (data.error) throw new Error(data.error);
             
-            setChatLog(prev => [...prev, { text, sender: "user" }, { text: data.response, sender: "ai" }]);
+            const cleanResponse = sanitizeResponse(data.response);
+            setChatLog(prev => [...prev, { text, sender: "user" }, { text: cleanResponse, sender: "ai" }]);
 
             playTalkingVideo();
-            const speech = new SpeechSynthesisUtterance(data.response);
+            const speech = new SpeechSynthesisUtterance(cleanResponse);
             speech.onend = () => {
                 playIdleVideo();
                 isSpeaking.current = false;
@@ -117,79 +123,55 @@ const Chatbot = () => {
         }
     };
 
+    // Scroll to the latest message
+    useEffect(() => {
+        if (chatLogRef.current) {
+            chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+        }
+    }, [chatLog]);
+
     return (
-        <div style={{ position: "relative", width: "100vw", height: "100vh", overflow: "hidden" }}>
+        <div id="chatbot-container" className="chatbot-container">
             {/* Video Background */}
             <video 
-            ref={idleVideoRef}
-            src="/idle.mp4" 
-            autoPlay 
-            loop 
-            muted
-            style={{ 
-                position: "absolute", 
-                top: "50%", 
-                left: "50%", 
-                transform: "translate(-50%, -50%)", 
-                height: "100%", 
-                objectFit: "cover" 
-            }}
-        />
-        <video 
-            ref={talkingVideoRef}
-            src="/talking.mp4" 
-            loop 
-            muted
-            style={{ 
-                position: "absolute", 
-                top: "50%", 
-                left: "50%", 
-                transform: "translate(-50%, -50%)", 
-                height: "100%", 
-                objectFit: "cover", 
-                display: "none" 
-            }}
-        />
+                ref={idleVideoRef}
+                id="idle-video"
+                src="/idle.mp4" 
+                autoPlay 
+                loop 
+                muted
+                className="video-background"
+            />
+            <video 
+                ref={talkingVideoRef}
+                id="talking-video"
+                src="/talking.mp4" 
+                loop 
+                muted
+                className="video-background talking-video"
+            />
 
-            
             {/* Buttons */}
-            <div style={{ position: "absolute", top: "20px", left: "20px", zIndex: 10 }}>
-                <button onClick={startRecognition}>Start</button>
-                <button onClick={stopRecognition}>Stop</button>
-                <button onClick={clearChat}>Clear</button>
+            <div id="control-buttons" className="control-buttons">
+                <button id="start-btn" className="btn" onClick={startRecognition}>Start</button>
+                <button id="stop-btn" className="btn" onClick={stopRecognition}>Stop</button>
+                <button id="clear-btn" className="btn" onClick={clearChat}>Clear</button>
             </div>
 
             {/* Chat Log */}
-            <div style={{ 
-                position: "absolute", 
-                bottom: "20px", 
-                left: "20px", 
-                width: "300px", 
-                maxHeight: "200px", 
-                overflowY: "auto", 
-                background: "rgba(0, 0, 0)", 
-                color: "#fff", 
-                padding: "10px", 
-                borderRadius: "5px"
-            }}>
+            <div id="chat-log" className="chat-log" ref={chatLogRef}>
                 {chatLog.map((msg, index) => (
-                    <div key={index} style={{ background: msg.sender === "user" ? "#9999ff44" : "#f0f0f044", padding: "5px", margin: "5px 0" }}>
+                    <div 
+                        key={index} 
+                        className={`chat-message ${msg.sender === "user" ? "chat-message-user" : "chat-message-ai"}`}
+                    >
                         {msg.text}
                     </div>
                 ))}
             </div>
 
             {/* Captions */}
-            <div style={{ 
-                position: "absolute", 
-                bottom: "10px", 
-                width: "100%", 
-                textAlign: "center", 
-                background: "rgba(0, 0, 0)", 
-                color: "#fff", 
-                padding: "10px", 
-                fontSize: "18px" 
-            }}>
+            <div id="captions" className="captions">
                 {captions}
             </div>
         </div>

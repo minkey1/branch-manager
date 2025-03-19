@@ -1,3 +1,5 @@
+#pip install sentence-transformers faiss-cpu PyMuPDF flask-cors requests numpy
+
 import os
 import fitz  # PyMuPDF for PDF text extraction
 import faiss
