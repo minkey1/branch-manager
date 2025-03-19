@@ -21,16 +21,16 @@ const Chatbot = () => {
   useEffect(() => {
     recognitionRef.current = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     const recognition = recognitionRef.current;
-    
+
     recognition.lang = "en-US";
     recognition.continuous = true;
     recognition.interimResults = true;
-    
+
     recognition.onresult = async (event) => {
       if (!shouldProcess.current) return;
       let transcript = "";
       let finalTranscript = "";
-      
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
@@ -59,16 +59,17 @@ const Chatbot = () => {
   // Start recognition by requesting microphone access and starting the recognizer
   const startRecognition = () => {
     if (!isRecognizing) {
-      navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {
-        setError("Microphone access denied");
-      });
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .catch(() => {
+          setError("Microphone access denied");
+        });
       recognitionRef.current.start();
-      setIsRecognizing(true);  // Update state
+      setIsRecognizing(true); // Update state
       shouldProcess.current = true;
       setError("");
     }
   };
-  
 
   // Stop recognition and cancel any speech synthesis
   const stopRecognition = () => {
@@ -78,7 +79,6 @@ const Chatbot = () => {
     window.speechSynthesis.cancel();
     playIdleVideo(); // Switches the video background to idle
   };
-  
 
   // Clear chat log and reset captions
   const clearChat = () => {
@@ -96,6 +96,15 @@ const Chatbot = () => {
     return text.replace(/\*+/g, "").replace(/[\[\](){}<>]/g, "");
   };
 
+  // Function to initiate the loan application process
+  const initiate_loan = (loanDetails) => {
+    // Placeholder logic:  For now, just log the details.
+    console.log("Initiating Loan with details:", loanDetails);
+    // In a real application, you'd trigger the actual loan application process here,
+    // likely involving further API calls and state updates.
+    setChatLog(prev => [...prev, { text: "loan application process started", sender: "ai" }]);
+  };
+
   // Get AI response from API, update chat log, and speak the response
   const getAIResponse = async (text) => {
     try {
@@ -108,11 +117,32 @@ const Chatbot = () => {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
+      // Function Calling Logic
+      if (data.function_call) {
+        const { name, arguments: argsString } = data.function_call;
+
+        try {
+          const args = JSON.parse(argsString); // Parse the JSON string
+
+          if (name === "initiate_loan") {
+            initiate_loan(args); // Call the function with parsed arguments
+          } else {
+            console.warn(`Unknown function call: ${name}`);
+          }
+          return; // Exit the function, as we've handled the function call
+        } catch (parseError) {
+          console.error("Error parsing function arguments:", parseError);
+          setError(`Error parsing function arguments: ${parseError.message}`);
+          return; // Exit if there's an error parsing
+        }
+      }
+
+      // Normal Chat Response Processing (if no function call)
       const cleanResponse = sanitizeResponse(data.response);
-      setChatLog(prev => [
+      setChatLog((prev) => [
         ...prev,
         { text, sender: "user" },
-        { text: cleanResponse, sender: "ai" }
+        { text: cleanResponse, sender: "ai" },
       ]);
 
       playTalkingVideo();
