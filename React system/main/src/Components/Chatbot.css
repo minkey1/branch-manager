@@ -85,3 +85,130 @@
     opacity: 0.6; /* Slight transparency */
   }
   
+/* InputField.css */
+.input-field-container {
+    position: absolute;
+    top: 50%;
+    left: 20px; /* Adjust as needed */
+    transform: translateY(-50%);
+    width: 300px; /* Or whatever width you want */
+  }
+  
+  .input-field-form {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .input-field-label {
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  
+  .input-field-input {
+    padding: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .input-field-button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .input-field-button:hover {
+    background-color: #0056b3;
+  }
+
+/* FileUploader.css */
+.file-uploader-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Equivalent to gap-2 in tailwind */
+    padding: 16px; /* Equivalent to p-4 in tailwind */
+    border: 1px solid #ccc;
+    border-radius: 8px; /* Equivalent to rounded-lg in tailwind */
+    width: 320px; /* Equivalent to w-80 in tailwind (adjust as needed) */
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+  
+  .file-uploader-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .file-uploader-input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .file-uploader-button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .file-uploader-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  .file-uploader-button:not(:disabled):hover {
+    background-color: #0056b3;
+  }
+
+  .completion-message{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .camera-container {
+    width: 256px; /* Equivalent to w-64 */
+    height: 192px; /* Equivalent to h-48 */
+    border-width: 8px;
+    border-style: solid;
+    border-radius: 12px; /* Equivalent to rounded-xl */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+}
+
+.border-green {
+    border-color: green;
+}
+
+.border-red {
+    border-color: red;
+}
+
+.camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+
+}

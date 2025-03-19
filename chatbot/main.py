@@ -9,6 +9,8 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sentence_transformers import SentenceTransformer
+from werkzeug.utils import secure_filename
+
 
 # Flask app setup
 app = Flask(__name__)
@@ -143,6 +145,60 @@ def chat():
         print("\n🚨 ERROR: Failed API request -", response.status_code)
         print(response.text)
         return jsonify({"error": "Failed to fetch response", "details": response.text}), response.status_code
+
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload/pan', methods=['POST'])
+def upload_pan():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'pan_' + filename))
+        return jsonify({'message': 'PAN image uploaded successfully'}), 200
+    else:
+        return jsonify({'error': 'Invalid file type'}), 400
+
+@app.route('/upload/aadhar', methods=['POST'])
+def upload_aadhar():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'aadhar_' + filename))
+        return jsonify({'message': 'Aadhar image uploaded successfully'}), 200
+    else:
+        return jsonify({'error': 'Invalid file type'}), 400
+
+@app.route('/upload/salary', methods=['POST'])
+def upload_salary():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'salary_' + filename))
+        return jsonify({'message': 'Salary image uploaded successfully'}), 200
+    else:
+        return jsonify({'error': 'Invalid file type'}), 400
 
 if __name__ == "__main__":
     print("🚀 AI Branch Manager Backend with RAG is running on port 5000...")

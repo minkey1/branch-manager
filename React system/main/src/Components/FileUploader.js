@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
-const FileUploader = ({ label, fileType, submissionLink }) => {
+const FileUploader = ({ label, fileType, submissionLink, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -26,9 +23,12 @@ const FileUploader = ({ label, fileType, submissionLink }) => {
         method: "POST",
         body: formData,
       });
-      
+
       if (response.ok) {
         alert("File uploaded successfully!");
+        if (onUploadSuccess) {
+          onUploadSuccess({}); // Call onUploadSuccess after successful upload
+        }
       } else {
         alert("Failed to upload file.");
       }
@@ -40,12 +40,21 @@ const FileUploader = ({ label, fileType, submissionLink }) => {
   };
 
   return (
-    <div className="flex flex-col gap-2 p-4 border rounded-lg w-80">
-      <Label>{label}</Label>
-      <Input type="file" accept={fileType} onChange={handleFileChange} />
-      <Button onClick={handleSubmit} disabled={uploading}>
+    <div className="file-uploader-container">
+      <label className="file-uploader-label">{label}</label>
+      <input
+        type="file"
+        accept={fileType}
+        onChange={handleFileChange}
+        className="file-uploader-input"
+      />
+      <button
+        onClick={handleSubmit}
+        disabled={uploading}
+        className="file-uploader-button"
+      >
         {uploading ? "Uploading..." : "Submit"}
-      </Button>
+      </button>
     </div>
   );
 };

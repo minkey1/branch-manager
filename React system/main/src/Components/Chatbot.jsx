@@ -3,6 +3,9 @@ import VideoBackground from "./VideoBackground";
 import ControlButtons from "./ControlButtons";
 import ChatLog from "./ChatLog";
 import Captions from "./Captions";
+import InputField from "./InputField";
+import FileUploader from "./FileUploader";
+import Camera from "./Camera";
 import "./Chatbot.css";
 
 const Chatbot = () => {
@@ -16,8 +19,9 @@ const Chatbot = () => {
   const idleVideoRef = useRef(null);
   const talkingVideoRef = useRef(null);
   const isSpeaking = useRef(false);
+  const [loanStep, setLoanStep] = useState(0);
+  const [loanData, setLoanData] = useState({});
 
-  // Initialize Speech Recognition and set up event listeners
   useEffect(() => {
     recognitionRef.current = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     const recognition = recognitionRef.current;
@@ -56,7 +60,6 @@ const Chatbot = () => {
     };
   }, []);
 
-  // Start recognition by requesting microphone access and starting the recognizer
   const startRecognition = () => {
     if (!isRecognizing) {
       navigator.mediaDevices
@@ -65,50 +68,56 @@ const Chatbot = () => {
           setError("Microphone access denied");
         });
       recognitionRef.current.start();
-      setIsRecognizing(true); // Update state
+      setIsRecognizing(true);
       shouldProcess.current = true;
       setError("");
     }
   };
 
-  // Stop recognition and cancel any speech synthesis
   const stopRecognition = () => {
     recognitionRef.current.stop();
     setIsRecognizing(false);
     shouldProcess.current = false;
     window.speechSynthesis.cancel();
-    playIdleVideo(); // Switches the video background to idle
-  };
-
-  // Clear chat log and reset captions
-  const clearChat = () => {
-    setCaptions("Waiting for speech...");
-    recognitionRef.current.stop();
-    setIsRecognizing(false);
-    shouldProcess.current = false;
-    window.speechSynthesis.cancel();
     playIdleVideo();
-    setChatLog([]);
   };
 
-  // Remove unwanted characters from the API response
-  const sanitizeResponse = (text) => {
-    return text.replace(/\*+/g, "").replace(/[\[\](){}<>]/g, "");
+  const playTalkingVideo = () => {
+    if (talkingVideoRef.current && idleVideoRef.current) {
+      idleVideoRef.current.style.display = "none";
+      talkingVideoRef.current.style.display = "block";
+      talkingVideoRef.current.play();
+    }
   };
 
-  // Function to initiate the loan application process
-  const initiate_loan = (loanDetails) => {
-    // Placeholder logic:  For now, just log the details.
-    console.log("Initiating Loan with details:", loanDetails);
-
-    
-    // In a real application, you'd trigger the actual loan application process here,
-    // likely involving further API calls and state updates.
-    setChatLog((prev) => [...prev, { text: "Loan application process started", sender: "ai" }]);
+  const playIdleVideo = () => {
+    if (talkingVideoRef.current && idleVideoRef.current) {
+      talkingVideoRef.current.style.display = "none";
+      idleVideoRef.current.style.display = "block";
+      idleVideoRef.current.play();
+    }
   };
 
-  // Get AI response from API, update chat log, and speak the response
+  useEffect(() => {
+    if (chatLogRef.current) {
+      chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+    }
+  }, [chatLog]);
+
+  const initiateLoanProcess = () => {
+    stopRecognition();
+    setLoanStep(1);
+    speak("Okay, let's start your loan application.");
+  };
+
+  const handleLoanData = (data) => {
+    setLoanData((prev) => ({ ...prev, ...data }));
+    setLoanStep((prev) => prev + 1);
+  };
+
   const getAIResponse = async (text) => {
+    if (loanStep > 0) return;
+
     try {
       const response = await fetch("http://127.0.0.1:5000/chat", {
         method: "POST",
@@ -119,99 +128,103 @@ const Chatbot = () => {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
-      const aiResponse = data.response; // Directly use data.response
+      const aiResponse = data.response;
 
-      // Check for the function call in the response
       if (aiResponse.includes("initialize_loan")) {
-        console.log("Function call detected: initialize_loan");
-        initiate_loan({}
-
-
-
-
-
-        ); // Call the function.  Pass empty object as the backend doesn't expect arguments.
-        // Remove the function call string before updating chat log and speaking
-        const cleanResponse = sanitizeResponse(aiResponse.replace(/,?\s*initialize_loan\s*/i, ''));
-
-        setChatLog((prev) => [
-          ...prev,
-          { text, sender: "user" },
-          { text: cleanResponse, sender: "ai" }, // Use the cleaned response
-        ]);
-        playTalkingVideo();
-        const speech = new SpeechSynthesisUtterance(cleanResponse);
-        speech.onend = () => {
-          playIdleVideo();
-          isSpeaking.current = false;
-        };
-        isSpeaking.current = true;
-        window.speechSynthesis.speak(speech);
-        return; // Return after handling function call
+        initiateLoanProcess();
+        return;
       }
 
-      // Normal Chat Response Processing (if no function call)
-      const cleanResponse = sanitizeResponse(aiResponse);
-      setChatLog((prev) => [
-        ...prev,
-        { text, sender: "user" },
-        { text: cleanResponse, sender: "ai" },
-      ]);
-
-      playTalkingVideo();
-      const speech = new SpeechSynthesisUtterance(cleanResponse);
-      speech.onend = () => {
-        playIdleVideo();
-        isSpeaking.current = false;
-      };
-      isSpeaking.current = true;
-      window.speechSynthesis.speak(speech);
+      const cleanResponse = aiResponse.replace(/\*+/g, "").replace(/[\[\](){}<>]/g, "");
+      setChatLog((prev) => [...prev, { text, sender: "user" }, { text: cleanResponse, sender: "ai" }]);
+      speak(cleanResponse);
     } catch (error) {
       setError("API Error: " + error.message);
     }
   };
 
-  // Switch to talking video background
-  const playTalkingVideo = () => {
-    if (talkingVideoRef.current && idleVideoRef.current) {
-      idleVideoRef.current.style.display = "none";
-      talkingVideoRef.current.style.display = "block";
-      talkingVideoRef.current.play();
+  const loanQuestions = [
+    "How much money do you want for the loan?",
+    "For how long (in years)?",
+    "Your PAN card number?",
+    "Your Aadhar number?",
+    "Your CIBIL score?",
+    "Your net income?",
+  ];
+
+  const loanDocuments = [
+    { label: "Upload PAN Card Image", fileType: "image/*", link: "pan" },
+    { label: "Upload Aadhar Card Image", fileType: "image/*", link: "aadhar" },
+    { label: "Upload Salary Slip Image", fileType: "image/*", link: "salary" },
+  ];
+
+  const calculateInstallment = (principal, years, rate) => {
+    const monthlyRate = rate / 100 / 12;
+    const months = years * 12;
+    return (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+  };
+
+  const checkLoanEligibility = () => {
+    const { "How much money do you want for the loan?": principal, "For how long (in years)?": years, "Your CIBIL score?": cibil, "Your net income?": income } = loanData;
+
+    if (!principal || !years || !cibil || !income) {
+      return "You are eligible for the loan";
+    }
+
+    const monthlyInstallment = calculateInstallment(parseFloat(principal), parseFloat(years), 10.5);
+    const requiredIncome = monthlyInstallment * 2;
+
+    if (parseFloat(cibil) >= 650 && parseFloat(income) >= requiredIncome) {
+      return "Loan approved!";
+    } else {
+      return "Loan application denied.";
     }
   };
 
-  // Switch back to idle video background
-  const playIdleVideo = () => {
-    if (talkingVideoRef.current && idleVideoRef.current) {
-      talkingVideoRef.current.style.display = "none";
-      idleVideoRef.current.style.display = "block";
-      idleVideoRef.current.play();
-    }
+  const speak = (text) => {
+    playTalkingVideo();
+    const speech = new SpeechSynthesisUtterance(text);
+    speech.onend = () => {
+      playIdleVideo();
+      isSpeaking.current = false;
+    };
+    isSpeaking.current = true;
+    window.speechSynthesis.speak(speech);
   };
 
-  // Auto-scroll the chat log to the latest message
   useEffect(() => {
-    if (chatLogRef.current) {
-      chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+    if (loanStep > 0 && loanStep <= loanQuestions.length) {
+      speak(loanQuestions[loanStep - 1]);
+    } else if (loanStep > loanQuestions.length && loanStep <= loanQuestions.length + loanDocuments.length) {
+      speak(`Please upload your ${loanDocuments[loanStep - loanQuestions.length - 1].label}`);
+    } else if (loanStep > loanQuestions.length + loanDocuments.length) {
+      speak(checkLoanEligibility());
     }
-  }, [chatLog]);
+  }, [loanStep]);
 
   return (
     <div id="chatbot-container" className="chatbot-container">
-      <VideoBackground
-        idleVideoRef={idleVideoRef}
-        talkingVideoRef={talkingVideoRef}
-      />
-      <ControlButtons
-        startRecognition={startRecognition}
-        stopRecognition={stopRecognition}
-        clearChat={clearChat}
-        isRecognizing={isRecognizing}
-      />
-
+      <VideoBackground idleVideoRef={idleVideoRef} talkingVideoRef={talkingVideoRef} />
+      <Camera />
+      <ControlButtons startRecognition={startRecognition} stopRecognition={stopRecognition} clearChat={() => setChatLog([])} isRecognizing={isRecognizing} />
       <ChatLog chatLog={chatLog} chatLogRef={chatLogRef} />
       <Captions captions={captions} />
       {error && <div className="error">{error}</div>}
+      {loanStep > 0 && loanStep <= loanQuestions.length && (
+        <InputField question={loanQuestions[loanStep - 1]} onSubmit={handleLoanData} />
+      )}
+      {loanStep > loanQuestions.length && loanStep <= loanQuestions.length + loanDocuments.length && (
+        <FileUploader
+          label={loanDocuments[loanStep - loanQuestions.length - 1].label}
+          fileType={loanDocuments[loanStep - loanQuestions.length - 1].fileType}
+          submissionLink={`http://localhost:5000/upload/${loanDocuments[loanStep - loanQuestions.length - 1].link}`}
+          onUploadSuccess={handleLoanData}
+        />
+      )}
+      {loanStep > loanQuestions.length + loanDocuments.length && (
+        <div className="completion-message">{checkLoanEligibility()}</div>
+      )}
+
     </div>
   );
 };
