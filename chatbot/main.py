@@ -15,10 +15,19 @@ app = Flask(__name__)
 CORS(app)
 
 # Gemini API Key (Replace with actual API key)
-GEMINI_API_KEY = "AIzaSyDAtW83yirQRbAv7wiYAkWDFKz1nw5wy74"
+GEMINI_API_KEY = "AIzaSyDAtW83yirQRbAv7wiYAkWDFKz1nw5wy74"  # Replace with your actual key
 
 # System prompt for AI
-SYSTEM_PROMPT = "You are an AI branch manager voice assistant, talk like a normal human would in words instead of text, be someone that helps users with loan applications or any other bank related query. Answer politely and concisely. Keep it short and simple. You'll be inside a voice assistant, so avoid formatting like using * or ~ like symbols."
+SYSTEM_PROMPT = """You are an AI branch manager voice assistant. Talk like a normal human would. 
+Be someone that helps users with loan applications or any other bank-related query. Answer politely 
+and concisely. Keep it short and simple. You'll be inside a voice assistant, so avoid formatting 
+like using * or ~ like symbols.  If the user asks about a loan, respond to the user. 
+If the user is asking to apply for a loan, or wants to begin the loan application process, 
+include the function call 'initialize_loan' in your response. Do not explain the function call,
+only include it.  
+Example of a response: "Sure, I can help you with that, initialize_loan"
+Another example: "I can help you with loans. What kind of loan are you interested in?"
+"""
 
 # Store conversation history
 conversation_history = [{"role": "user", "parts": [{"text": SYSTEM_PROMPT}]}]
@@ -37,7 +46,7 @@ model = SentenceTransformer(EMBEDDING_MODEL)
 def extract_text_from_pdfs():
     policy_texts = []
     filenames = []
-    
+
     for file in os.listdir(POLICY_FOLDER):
         if file.endswith(".pdf"):
             file_path = os.path.join(POLICY_FOLDER, file)
@@ -79,7 +88,7 @@ faiss_index = create_faiss_index(policy_embeddings)
 def search_policy(query, top_k=1):
     query_embedding = get_text_embeddings([query])
     distances, indices = faiss_index.search(query_embedding, top_k)
-    
+
     results = []
     for i in range(top_k):
         idx = indices[0][i]
@@ -115,7 +124,7 @@ def chat():
     if response.status_code == 200:
         response_data = response.json()
 
-        # Extract AI response text (Modify this if needed based on Gemini API response format)
+        # Extract AI response text
         try:
             ai_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received.")
         except IndexError:

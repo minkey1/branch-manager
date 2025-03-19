@@ -100,9 +100,11 @@ const Chatbot = () => {
   const initiate_loan = (loanDetails) => {
     // Placeholder logic:  For now, just log the details.
     console.log("Initiating Loan with details:", loanDetails);
+
+    
     // In a real application, you'd trigger the actual loan application process here,
     // likely involving further API calls and state updates.
-    setChatLog(prev => [...prev, { text: "loan application process started", sender: "ai" }]);
+    setChatLog((prev) => [...prev, { text: "Loan application process started", sender: "ai" }]);
   };
 
   // Get AI response from API, update chat log, and speak the response
@@ -117,28 +119,39 @@ const Chatbot = () => {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
-      // Function Calling Logic
-      if (data.function_call) {
-        const { name, arguments: argsString } = data.function_call;
+      const aiResponse = data.response; // Directly use data.response
 
-        try {
-          const args = JSON.parse(argsString); // Parse the JSON string
+      // Check for the function call in the response
+      if (aiResponse.includes("initialize_loan")) {
+        console.log("Function call detected: initialize_loan");
+        initiate_loan({}
 
-          if (name === "initiate_loan") {
-            initiate_loan(args); // Call the function with parsed arguments
-          } else {
-            console.warn(`Unknown function call: ${name}`);
-          }
-          return; // Exit the function, as we've handled the function call
-        } catch (parseError) {
-          console.error("Error parsing function arguments:", parseError);
-          setError(`Error parsing function arguments: ${parseError.message}`);
-          return; // Exit if there's an error parsing
-        }
+
+
+
+
+        ); // Call the function.  Pass empty object as the backend doesn't expect arguments.
+        // Remove the function call string before updating chat log and speaking
+        const cleanResponse = sanitizeResponse(aiResponse.replace(/,?\s*initialize_loan\s*/i, ''));
+
+        setChatLog((prev) => [
+          ...prev,
+          { text, sender: "user" },
+          { text: cleanResponse, sender: "ai" }, // Use the cleaned response
+        ]);
+        playTalkingVideo();
+        const speech = new SpeechSynthesisUtterance(cleanResponse);
+        speech.onend = () => {
+          playIdleVideo();
+          isSpeaking.current = false;
+        };
+        isSpeaking.current = true;
+        window.speechSynthesis.speak(speech);
+        return; // Return after handling function call
       }
 
       // Normal Chat Response Processing (if no function call)
-      const cleanResponse = sanitizeResponse(data.response);
+      const cleanResponse = sanitizeResponse(aiResponse);
       setChatLog((prev) => [
         ...prev,
         { text, sender: "user" },
